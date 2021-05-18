@@ -30,7 +30,7 @@ You can also choose source code compilation method according to your platform. K
 **Inference sample**  
 
 KAI Lite provide C++ API, and provide correspondent complete API examples: path is `tensorflow/lite/examples/reg_test/reg_test.cc`
-You can quickly understand usage method according to the example, and intergrate the API into your project; you can also directly refer to the project [KSAI-Toolkits]().
+You can quickly understand usage method according to the example, and intergrate the API into your project; you can also directly refer to the project [KSAI-Toolkits](https://github.com/kingsoft-wps/KSAI-Toolkits).
 
 ## Key features
 
@@ -59,7 +59,7 @@ You can quickly understand usage method according to the example, and intergrate
 | Phytium FT1500a | - | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | - | - |
 
 ##  Communicate and feedback 
-* Welcome to submit questions, reports and suggestions through[Github Issues](https://github.com/KSAI/KSAI-Lite/issues).
+* Welcome to submit questions, reports and suggestions through[Github Issues](https://github.com/kingsoft-wps/KSAI-Lite/issues).
 
 ## License
 KSAI-Lite is supported by [Apache-2.0 license](LICENSE)
