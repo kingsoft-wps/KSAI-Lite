@@ -21,11 +21,9 @@ include(OverridableFetchContent)
 
 OverridableFetchContent_Declare(
   farmhash
-  #GIT_REPOSITORY https://github.com/google/farmhash
+  GIT_REPOSITORY https://github.com/google/farmhash
   # TODO: Reference the source of this.
-  #GIT_TAG 816a4ae622e964763ca0862d9dbd19324a1eaf45
-  GIT_REPOSITORY git@ksogit.kingsoft.net:zhai/farmhash.git
-  GIT_TAG master
+  GIT_TAG 816a4ae622e964763ca0862d9dbd19324a1eaf45
   # It's not currently possible to shallow clone with a GIT TAG
   # as cmake attempts to git checkout the commit hash after the clone
   # which doesn't work as it's a shallow clone hence a different commit hash.

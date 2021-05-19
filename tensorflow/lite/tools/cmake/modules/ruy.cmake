@@ -21,9 +21,7 @@ include(OverridableFetchContent)
 
 OverridableFetchContent_Declare(
   ruy
-  #GIT_REPOSITORY https://github.com/google/ruy
-  #GIT_TAG master # TODO
-  GIT_REPOSITORY git@ksogit.kingsoft.net:zhai/ruy.git
+  GIT_REPOSITORY https://github.com/google/ruy
   GIT_TAG master # TODO
   GIT_SHALLOW TRUE
   GIT_PROGRESS TRUE

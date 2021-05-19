@@ -21,9 +21,7 @@ endif()
 
 OverridableFetchContent_Declare(
   neon2sse
-  #GIT_REPOSITORY https://github.com/intel/ARM_NEON_2_x86_SSE
-  #GIT_TAG master
-  GIT_REPOSITORY git@ksogit.kingsoft.net:zhai/neon2sse.git
+  GIT_REPOSITORY https://github.com/intel/ARM_NEON_2_x86_SSE
   GIT_TAG master
   GIT_SHALLOW TRUE
   GIT_PROGRESS TRUE
