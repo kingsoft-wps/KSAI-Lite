@@ -24,10 +24,10 @@ model is more lightweight, and cost much less resources, and faster inference sp
 
 **Download or Edit-Translation** 
 
-KSAI Lite provides official Release inference library of multiple platforms, we recommend you directly download  KAI Lite pre-build lib, including [Linux-X64](https://sdk.ai.wpscdn.cn/KSAI/KSAI-Lite/pre-build/linux/X64/libtensorflow-lite.so), [Linux-ARM](https://sdk.ai.wpscdn.cn/KSAI/KSAI-Lite/pre-build/linux/ARM/libtensorflow-lite.so), [Linux-MIPS64](https://sdk.ai.wpscdn.cn/KSAI/KSAI-Lite/pre-build/linux/MIPS64/libtensorflow-lite.so)以及[Windows-X64 lib](https://sdk.ai.wpscdn.cn/KSAI/KSAI-Lite/pre-build/windows/tensorflow-lite.lib)和[Windows-X64 dll](https://sdk.ai.wpscdn.cn/KSAI/KSAI-Lite/pre-build/windows/tensorflow-lite.dll)。
+KSAI Lite provides official Release inference library of multiple platforms, we recommend you directly download  KAI Lite pre-build lib, including [Linux-X64](https://sdk.ai.wpscdn.cn/KSAI/KSAI-Lite/pre-build/linux/X64/libtensorflow-lite.so), [Linux-ARM](https://sdk.ai.wpscdn.cn/KSAI/KSAI-Lite/pre-build/linux/ARM/libtensorflow-lite.so), [Linux-MIPS64](https://sdk.ai.wpscdn.cn/KSAI/KSAI-Lite/pre-build/linux/MIPS64/libtensorflow-lite.so), [Windows-X64 lib](https://sdk.ai.wpscdn.cn/KSAI/KSAI-Lite/pre-build/windows/tensorflow-lite.lib) and [Windows-X64 dll](https://sdk.ai.wpscdn.cn/KSAI/KSAI-Lite/pre-build/windows/tensorflow-lite.dll)。
 You can also choose source code compilation method according to your platform. KSAI Lite provide  source code compilation scripts, path is `tools/`,you just need to prepare the environment according to the environment setup.md in `docs/` folder and then compile with the scripts in `tools/` folder.
 
-**Inference sample**  
+**Inference sample**
 
 KAI Lite provide C++ API, and provide correspondent complete API examples: path is `tensorflow/lite/examples/reg_test/reg_test.cc`
 You can quickly understand usage method according to the example, and intergrate the API into your project; you can also directly refer to the project [KSAI-Toolkits](https://github.com/kingsoft-wps/KSAI-Toolkits).
@@ -55,7 +55,7 @@ You can quickly understand usage method according to the example, and intergrate
 | Qualcomm 845 | - | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | - | - |
 | huaweikunpeng920 | - | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | - | - |
 | Loongson-3A | - | - | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | - |
-| zhaoxin C4600 | - | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | - | - |
+| zhaoxin C4600 | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | - | - | - |
 | Phytium FT1500a | - | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | - | - |
 
 ##  Communicate and feedback 
