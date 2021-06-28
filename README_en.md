@@ -1,6 +1,6 @@
 #  KSAI Lite
 
-English | [简体中文](https://ksogit.kingsoft.net/zhai/ksai-lite/blob/develop/README.md)
+English | [简体中文](README.md)
 
  [![Documentation Status](https://img.shields.io/badge/中文文档-最新-brightgreen.svg)](https://KAI-lite.readthedocs.io/zh/develop/)  [![Release](https://img.shields.io/github/release/KAIKAI/KAI-Lite.svg)](https://github.com/KAIKAI/KAI-Lite/releases)  [![License](https://img.shields.io/badge/license-Apache%202-blue.svg)](LICENSE)
 
