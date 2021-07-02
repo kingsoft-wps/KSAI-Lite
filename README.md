@@ -50,14 +50,14 @@ KSAI Lite提供了C++ API，并且提供了相应API的完整使用示例:
 
 ## 持续集成
 
-| System | X86 Linux | ARM Linux | MIPS64 Linux| windows |
+| System | X86 Linux | ARM Linux | MIPS64 Linux| windows x86|
 |:-:|:-:|:-:|:-:|:-:|
 | CPU(32bit) | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | - | - | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)
 | CPU(64bit) | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | - | - | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)
 | 高通骁龙845 | - | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | - | - |
 | 华为kunpeng920 | - | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | - | - |
 | 龙芯Loongson-3A | - | - | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | - |
-| 兆芯C4600 | - | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | - | - |
+| 兆芯C4600 | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | - | - | - |
 | Phytium FT1500a | - | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | - | - |
 
 ##  交流与反馈

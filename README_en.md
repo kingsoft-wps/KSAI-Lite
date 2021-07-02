@@ -48,7 +48,7 @@ You can quickly understand usage method according to the example, and intergrate
 	  compute graph optimization like op fusion, Calculation pruning, storage optimization and quantization.
 ##  CI
 
-| System | X86 Linux | ARM Linux | MIPS64 Linux| windows |
+| System | X86 Linux | ARM Linux | MIPS64 Linux| windows x86|
 |:-:|:-:|:-:|:-:|:-:|
 | CPU(32bit) | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | - | - | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)
 | CPU(64bit) | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | - | - | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)
