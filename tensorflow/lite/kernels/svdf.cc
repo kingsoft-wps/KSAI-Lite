@@ -99,6 +99,7 @@ TfLiteStatus Prepare(TfLiteContext* context, TfLiteNode* node) {
   const int rank = params->rank;
   const int batch_size = input->dims->data[0];
   const int num_filters = weights_feature->dims->data[0];
+  TF_LITE_ENSURE(context, rank != 0);
   TF_LITE_ENSURE_EQ(context, num_filters % rank, 0);
   const int num_units = num_filters / rank;
   const int memory_size = weights_time->dims->data[1];
@@ -255,14 +256,21 @@ TfLiteStatus Prepare(TfLiteContext* context, TfLiteNode* node) {
                                                      output_temp_size_array));
 
     // Calculate effective scales.
+    TF_LITE_ENSURE(context, input->quantization.type != kTfLiteNoQuantization);
     auto* input_params =
         reinterpret_cast<TfLiteAffineQuantization*>(input->quantization.params);
+    TF_LITE_ENSURE(context,
+                   weights_feature->quantization.type != kTfLiteNoQuantization);
     auto* weights_feature_params = reinterpret_cast<TfLiteAffineQuantization*>(
         weights_feature->quantization.params);
+    TF_LITE_ENSURE(context, state->quantization.type != kTfLiteNoQuantization);
     auto* state_params =
         reinterpret_cast<TfLiteAffineQuantization*>(state->quantization.params);
+    TF_LITE_ENSURE(context,
+                   weights_time->quantization.type != kTfLiteNoQuantization);
     auto* weight_time_params = reinterpret_cast<TfLiteAffineQuantization*>(
         weights_time->quantization.params);
+    TF_LITE_ENSURE(context, output->quantization.type != kTfLiteNoQuantization);
     auto* output_params = reinterpret_cast<TfLiteAffineQuantization*>(
         output->quantization.params);
     const double effective_scale_1 = input_params->scale->data[0] *
@@ -298,6 +306,7 @@ TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
                     GetTemporarySafe(context, node, /*index=*/0, &scratch));
 
   TfLiteTensor* state = GetVariableInput(context, node, kStateTensor);
+  TF_LITE_ENSURE(context, state != nullptr);
   TfLiteTensor* output;
   TF_LITE_ENSURE_OK(context,
                     GetOutputSafe(context, node, kOutputTensor, &output));

@@ -70,7 +70,7 @@ class FileSystem {
   virtual tensorflow::Status NewRandomAccessFile(
       const std::string& fname, std::unique_ptr<RandomAccessFile>* result) {
     return NewRandomAccessFile(fname, nullptr, result);
-  };
+  }
 
   virtual tensorflow::Status NewRandomAccessFile(
       const std::string& fname, TransactionToken* token,
@@ -95,7 +95,7 @@ class FileSystem {
   virtual tensorflow::Status NewWritableFile(
       const std::string& fname, std::unique_ptr<WritableFile>* result) {
     return NewWritableFile(fname, nullptr, result);
-  };
+  }
 
   virtual tensorflow::Status NewWritableFile(
       const std::string& fname, TransactionToken* token,
@@ -117,7 +117,7 @@ class FileSystem {
   virtual tensorflow::Status NewAppendableFile(
       const std::string& fname, std::unique_ptr<WritableFile>* result) {
     return NewAppendableFile(fname, nullptr, result);
-  };
+  }
 
   virtual tensorflow::Status NewAppendableFile(
       const std::string& fname, TransactionToken* token,
@@ -149,7 +149,7 @@ class FileSystem {
   /// Returns OK if the named path exists and NOT_FOUND otherwise.
   virtual tensorflow::Status FileExists(const std::string& fname) {
     return FileExists(fname, nullptr);
-  };
+  }
 
   virtual tensorflow::Status FileExists(const std::string& fname,
                                         TransactionToken* token) {
@@ -273,7 +273,7 @@ class FileSystem {
   /// \brief Deletes the specified directory.
   virtual tensorflow::Status DeleteDir(const std::string& dirname) {
     return DeleteDir(dirname, nullptr);
-  };
+  }
 
   virtual tensorflow::Status DeleteDir(const std::string& dirname,
                                        TransactionToken* token) {
@@ -516,6 +516,24 @@ class FileSystem {
   /// \brief Decode transaction to human readable string.
   virtual std::string DecodeTransaction(const TransactionToken* token);
 
+  /// \brief Set File System Configuration Option
+  virtual tensorflow::Status SetOption(const std::string& name,
+                                       const std::vector<string>& values) {
+    return errors::Unimplemented("SetOption");
+  }
+
+  /// \brief Set File System Configuration Option
+  virtual tensorflow::Status SetOption(const std::string& name,
+                                       const std::vector<int64>& values) {
+    return errors::Unimplemented("SetOption");
+  }
+
+  /// \brief Set File System Configuration Option
+  virtual tensorflow::Status SetOption(const std::string& name,
+                                       const std::vector<double>& values) {
+    return errors::Unimplemented("SetOption");
+  }
+
   FileSystem() {}
 
   virtual ~FileSystem() = default;
@@ -751,8 +769,7 @@ class RandomAccessFile {
   virtual tensorflow::Status Read(uint64 offset, size_t n, StringPiece* result,
                                   char* scratch) const = 0;
 
-  // TODO(ebrevdo): Remove this ifdef when absl is updated.
-#if defined(PLATFORM_GOOGLE)
+#if defined(TF_CORD_SUPPORT)
   /// \brief Read up to `n` bytes from the file starting at `offset`.
   virtual tensorflow::Status Read(uint64 offset, size_t n,
                                   absl::Cord* cord) const {
@@ -778,11 +795,13 @@ class WritableFile {
   /// \brief Append 'data' to the file.
   virtual tensorflow::Status Append(StringPiece data) = 0;
 
-  // TODO(ebrevdo): Remove this ifdef when absl is updated.
-#if defined(PLATFORM_GOOGLE)
+#if defined(TF_CORD_SUPPORT)
   // \brief Append 'data' to the file.
   virtual tensorflow::Status Append(const absl::Cord& cord) {
-    return errors::Unimplemented("Append(absl::Cord) is not implemented");
+    for (StringPiece chunk : cord.Chunks()) {
+      TF_RETURN_IF_ERROR(Append(chunk));
+    }
+    return tensorflow::Status::OK();
   }
 #endif
 

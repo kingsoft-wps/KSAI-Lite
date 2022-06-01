@@ -44,7 +44,7 @@ namespace internal {
 // Eventually absl::strings will have native support for this and we will be
 // able to completely remove PrepareForStrCat().
 template <typename T>
-typename std::enable_if<!std::is_constructible<strings::AlphaNum, T>::value,
+typename std::enable_if<!std::is_convertible<T, strings::AlphaNum>::value,
                         std::string>::type
 PrepareForStrCat(const T& t) {
   std::stringstream ss;
@@ -155,6 +155,17 @@ std::string FormatColocationNodeForError(const T& names) {
 
 inline std::string FormatFunctionForError(const std::string& name) {
   return strings::StrCat("{{function_node ", name, "}}");
+}
+
+inline Status ReplaceErrorFromNonCommunicationOps(const Status s,
+                                                  const std::string& op_name) {
+  assert(IsUnavailable(s));
+  return Status(
+      error::INTERNAL,
+      strings::StrCat(
+          s.error_message(), "\nExecuting non-communication op <", op_name,
+          "> originally returned UnavailableError, and was replaced by "
+          "InternalError to avoid invoking TF network error handling logic."));
 }
 
 // The CanonicalCode() for non-errors.

@@ -25,8 +25,8 @@ limitations under the License.
 #include "tensorflow/lite/delegates/gpu/cl/environment.h"
 #include "tensorflow/lite/delegates/gpu/cl/inference_context.h"
 #include "tensorflow/lite/delegates/gpu/common/model.h"
+#include "tensorflow/lite/delegates/gpu/common/model_builder.h"
 #include "tensorflow/lite/delegates/gpu/common/status.h"
-#include "tensorflow/lite/delegates/gpu/common/testing/tflite_model_reader.h"
 #include "tensorflow/lite/kernels/kernel_util.h"
 #include "tensorflow/lite/kernels/register.h"
 
@@ -90,9 +90,7 @@ absl::Status RunModelSampleWithInternalAPISerializedKernels(
     const std::string& model_name, const std::vector<uint8_t>& kernel_cache);
 
 absl::Status RunModelSampleWithInternalAPISerialized(
-    tflite::Interpreter* cpu, const std::vector<int64_t>& in_refs,
-    const std::vector<int64_t>& out_refs,
-    const std::vector<uint8_t>& kernel_cache,
+    tflite::Interpreter* cpu, const std::vector<uint8_t>& kernel_cache,
     const std::vector<uint8_t>& serialized_model);
 
 // Run Jet with OpenCL internal API and compares correctness with TFLite CPU
@@ -340,15 +338,13 @@ absl::Status RunModelSampleWithInternalAPISerializedKernels(
   CompareCPUGPUResults(cpu_inference.get(), out_refs, output_tensors, 1e-4f);
 
   RETURN_IF_ERROR(RunModelSampleWithInternalAPISerialized(
-      cpu_inference.get(), in_refs, out_refs, kernel_cache, serialized_model));
+      cpu_inference.get(), kernel_cache, serialized_model));
 
   return absl::OkStatus();
 }
 
 absl::Status RunModelSampleWithInternalAPISerialized(
-    tflite::Interpreter* cpu, const std::vector<int64_t>& in_refs,
-    const std::vector<int64_t>& out_refs,
-    const std::vector<uint8_t>& kernel_cache,
+    tflite::Interpreter* cpu, const std::vector<uint8_t>& kernel_cache,
     const std::vector<uint8_t>& serialized_model) {
   FillInputTensors(cpu);
   auto status = cpu->Invoke();
@@ -371,6 +367,9 @@ absl::Status RunModelSampleWithInternalAPISerialized(
       absl::MakeSpan(kernel_cache.data(), kernel_cache.size());
   RETURN_IF_ERROR(NewInferenceEnvironment(env_options, &inf_env, nullptr));
 
+  std::vector<int64_t> in_refs;
+  std::vector<int64_t> out_refs;
+  RETURN_IF_ERROR(GetInOutRefs(serialized_model, &in_refs, &out_refs));
   std::unique_ptr<InferenceBuilder> builder;
   RETURN_IF_ERROR(inf_env->NewInferenceBuilder(serialized_model, &builder));
 

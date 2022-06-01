@@ -41,7 +41,8 @@ class SingleOpModelWithNNAPI : public SingleOpModel {
  public:
   SingleOpModelWithNNAPI() = default;
   void Init(const NnApi* nnapi) {
-    stateful_delegate_.reset(new StatefulNnApiDelegate(nnapi));
+    options_.disallow_nnapi_cpu = false;
+    stateful_delegate_.reset(new StatefulNnApiDelegate(nnapi, options_));
     SetDelegate(stateful_delegate_.get());
   }
 
@@ -54,6 +55,7 @@ class SingleOpModelWithNNAPI : public SingleOpModel {
 
  protected:
   std::unique_ptr<StatefulNnApiDelegate> stateful_delegate_;
+  StatefulNnApiDelegate::Options options_;
   TfLiteStatus compilation_status_;
 };
 
@@ -911,9 +913,3 @@ TEST_F(NnApiSignedQuantizationTest, DequantizeTestInt8MapsToInt8OnSdk30) {
 
 }  // namespace
 }  // namespace tflite
-
-int main(int argc, char** argv) {
-  ::tflite::LogToStderr();
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}

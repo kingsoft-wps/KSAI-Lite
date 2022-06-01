@@ -17,26 +17,39 @@ limitations under the License.
 #define TENSORFLOW_LITE_JAVA_SRC_MAIN_NATIVE_JNI_UTILS_H_
 
 #include <jni.h>
+#include <stdarg.h>
 
 #include "tensorflow/lite/error_reporter.h"
-
-extern const char kIllegalArgumentException[];
-extern const char kIllegalStateException[];
-extern const char kNullPointerException[];
-extern const char kIndexOutOfBoundsException[];
-extern const char kUnsupportedOperationException[];
 
 namespace tflite {
 namespace jni {
 
+extern const char kIllegalArgumentException[];
+extern const char kIllegalStateException[];
+extern const char kNullPointerException[];
+extern const char kUnsupportedOperationException[];
+
 void ThrowException(JNIEnv* env, const char* clazz, const char* fmt, ...);
+
+/**
+ * Checks whether the necessary JNI infra has been initialized, throwing a Java
+ * exception otherwise.
+ *
+ * @param env The JNIEnv for the current thread (which has to be attached to the
+ *     JVM).
+ * @return Whether or not the JNI infra has been initialized. If this method
+ *     returns false, no other JNI method should be called until the pending
+ *     exception has been handled (typically by returning to Java).
+ */
+bool CheckJniInitializedOrThrow(JNIEnv* env);
 
 class BufferErrorReporter : public ErrorReporter {
  public:
   BufferErrorReporter(JNIEnv* env, int limit);
-  virtual ~BufferErrorReporter();
+  ~BufferErrorReporter() override;
   int Report(const char* format, va_list args) override;
   const char* CachedErrorMessage();
+  using ErrorReporter::Report;
 
  private:
   char* buffer_;

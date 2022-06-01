@@ -1,3 +1,5 @@
+<!-- mdformat off(b/169948621#comment2) -->
+
 # Hello World Example
 
 This example is designed to demonstrate the absolute basics of using [TensorFlow
@@ -43,7 +45,7 @@ The example project for ARC EM SDP platform can be generated with the following
 command:
 
 ```
-make -f tensorflow/lite/micro/tools/make/Makefile TARGET=arc_emsdp TAGS=no_arc_mli generate_hello_world_make_project
+make -f tensorflow/lite/micro/tools/make/Makefile TARGET=arc_emsdp OPTIMIZED_KERNEL_DIR=arc_mli ARC_TAGS=no_arc_mli generate_hello_world_make_project
 ```
 
 ### Build and Run Example
@@ -168,10 +170,8 @@ make -f tensorflow/lite/micro/tools/make/Makefile TARGET=esp generate_hello_worl
 
 ### Building the example
 
-Go the the example project directory
-```
-cd tensorflow/lite/micro/tools/make/gen/esp_xtensa-esp32/prj/hello_world/esp-idf
-```
+Go to the example project directory `cd
+tensorflow/lite/micro/tools/make/gen/esp_xtensa-esp32/prj/hello_world/esp-idf`
 
 Then build with `idf.py`
 ```
@@ -201,7 +201,7 @@ idf.py --port /dev/ttyUSB0 flash monitor
 
 The following instructions will help you build and deploy this example to
 [HIMAX WE1 EVB](https://github.com/HimaxWiseEyePlus/bsp_tflu/tree/master/HIMAX_WE1_EVB_board_brief)
-board. To undstand more about using this board, please check
+board. To understand more about using this board, please check
 [HIMAX WE1 EVB user guide](https://github.com/HimaxWiseEyePlus/bsp_tflu/tree/master/HIMAX_WE1_EVB_user_guide).
 
 ### Initial Setup
@@ -245,7 +245,7 @@ make -f tensorflow/lite/micro/tools/make/Makefile TARGET=himax_we1_evb third_par
 Generate hello world project
 
 ```
-make -f tensorflow/lite/micro/tools/make/Makefile generate_hello_world_make_project TARGET=himax_we1_evb TAGS=no_arc_mli
+make -f tensorflow/lite/micro/tools/make/Makefile generate_hello_world_make_project TARGET=himax_we1_evb ARC_TAGS=no_arc_mli
 ```
 
 ### Build and Burn Example
@@ -454,28 +454,27 @@ Before we begin, you'll need the following:
 
 - STM32F7 discovery kit board
 - Mini-USB cable
-- ARM Mbed CLI ([installation instructions](https://os.mbed.com/docs/mbed-os/v5.12/tools/installation-and-setup.html))
-- Python 2.7 and pip
+- ARM Mbed CLI ([installation instructions](https://os.mbed.com/docs/mbed-os/v6.9/quick-start/build-with-mbed-cli.html). Check it out for MacOS Catalina - [mbed-cli is broken on MacOS Catalina #930](https://github.com/ARMmbed/mbed-cli/issues/930#issuecomment-660550734))
+- Python 3 and pip3
 
 Since Mbed requires a special folder structure for projects, we'll first run a
 command to generate a subfolder containing the required source files in this
 structure:
 
 ```
-make -f tensorflow/lite/micro/tools/make/Makefile TARGET=mbed TAGS="CMSIS disco_f746ng" generate_hello_world_mbed_project
+make -f tensorflow/lite/micro/tools/make/Makefile TARGET=disco_f746ng OPTIMIZED_KERNEL_DIR=cmsis_nn generate_hello_world_mbed_project
 ```
 
 This will result in the creation of a new folder:
 
 ```
-tensorflow/lite/micro/tools/make/gen/mbed_cortex-m4/prj/hello_world/mbed
+tensorflow/lite/micro/tools/make/gen/disco_f746ng_cortex-m4_default/prj/hello_world/mbed
 ```
 
 This folder contains all of the example's dependencies structured in the correct
 way for Mbed to be able to build it.
 
-Change into the directory and run the following commands, making sure you are
-using Python 2.7.15.
+Change into the directory and run the following commands.
 
 First, tell Mbed that the current directory is the root of an Mbed project:
 
@@ -489,16 +488,24 @@ Next, tell Mbed to download the dependencies and prepare to build:
 mbed deploy
 ```
 
-By default, Mbed will build the project using C++98. However, TensorFlow Lite
-requires C++11. Run the following Python snippet to modify the Mbed
+Older versions of Mbed will build the project using C++98. However, TensorFlow Lite
+requires C++11. If needed, run the following Python snippet to modify the Mbed
 configuration files so that it uses C++11:
 
 ```
 python -c 'import fileinput, glob;
 for filename in glob.glob("mbed-os/tools/profiles/*.json"):
   for line in fileinput.input(filename, inplace=True):
-    print line.replace("\"-std=gnu++98\"","\"-std=c++11\", \"-fpermissive\"")'
+    print(line.replace("\"-std=gnu++98\"","\"-std=c++11\", \"-fpermissive\""))'
 
+```
+
+Note: Mbed has a dependency to an old version of arm_math.h and cmsis_gcc.h (adapted from the general [CMSIS-NN MBED example](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/lite/micro/kernels/cmsis_nn#example-2---mbed)). Therefore you need to copy the newer version as follows:
+```bash
+cp tensorflow/lite/micro/tools/make/downloads/cmsis/CMSIS/DSP/Include/\
+arm_math.h mbed-os/cmsis/TARGET_CORTEX_M/arm_math.h
+cp tensorflow/lite/micro/tools/make/downloads/cmsis/CMSIS/Core/Include/\
+cmsis_gcc.h mbed-os/cmsis/TARGET_CORTEX_M/cmsis_gcc.h
 ```
 
 Finally, run the following command to compile:
@@ -550,7 +557,7 @@ x_value: 1.1843798*2^2, y_value: -1.9542645*2^-1
 To stop viewing the debug output with `screen`, hit `Ctrl+A`, immediately
 followed by the `K` key, then hit the `Y` key.
 
-### Run the tests on a development machine
+## Run the tests on a development machine
 
 To compile and test this example on a desktop Linux or macOS machine, first
 clone the TensorFlow repository from GitHub to a convenient place:
@@ -581,7 +588,7 @@ It's a fairly small amount of code that creates an interpreter, gets a handle to
 a model that's been compiled into the program, and then invokes the interpreter
 with the model and sample inputs.
 
-### Train your own model
+## Train your own model
 
 So far you have used an existing trained model to run inference on
 microcontrollers. If you wish to train your own model, follow the instructions

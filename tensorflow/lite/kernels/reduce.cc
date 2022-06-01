@@ -223,6 +223,11 @@ TfLiteStatus PrepareSimple(TfLiteContext* context, TfLiteNode* node) {
   TF_LITE_ENSURE_TYPES_EQ(context, op_context.axis->type, kTfLiteInt32);
   TF_LITE_ENSURE_OK(context, InitializeTemporaries(context, node, &op_context));
 
+  if (op_context.input->type == kTfLiteInt16) {
+    TF_LITE_ENSURE_EQ(context, op_context.input->params.zero_point, 0);
+    TF_LITE_ENSURE_EQ(context, op_context.output->params.zero_point, 0);
+  }
+
   TfLiteTensor* resolved_axis;
   TF_LITE_ENSURE_OK(
       context, GetTemporarySafe(context, node, /*index=*/1, &resolved_axis));
@@ -239,7 +244,7 @@ TfLiteStatus PrepareSimple(TfLiteContext* context, TfLiteNode* node) {
   return kTfLiteOk;
 }
 
-TfLiteStatus PrepareAny(TfLiteContext* context, TfLiteNode* node) {
+TfLiteStatus PrepareAllOrAny(TfLiteContext* context, TfLiteNode* node) {
   TF_LITE_ENSURE_EQ(context, NumInputs(node), 2);
   const TfLiteTensor* input;
   TF_LITE_ENSURE_OK(context, GetInputSafe(context, node, 0, &input));
@@ -263,6 +268,12 @@ TfLiteStatus PrepareMeanOrSum(TfLiteContext* context, TfLiteNode* node) {
     QuantizeMultiplier(real_multiplier, &data->multiplier, &exponent);
     data->shift = exponent;
   }
+
+  if (op_context.input->type == kTfLiteInt16) {
+    TF_LITE_ENSURE_EQ(context, op_context.input->params.zero_point, 0);
+    TF_LITE_ENSURE_EQ(context, op_context.output->params.zero_point, 0);
+  }
+
   TfLiteTensor* temp_sum;
   TF_LITE_ENSURE_OK(context,
                     GetTemporarySafe(context, node, /*index=*/2, &temp_sum));
@@ -535,7 +546,8 @@ TfLiteStatus EvalLogic(TfLiteContext* context, TfLiteNode* node,
     if (input->dims->data[i] == 0) return kTfLiteOk;
   }
 
-  if (input->type == kTfLiteUInt8 || input->type == kTfLiteInt8) {
+  if (input->type == kTfLiteUInt8 || input->type == kTfLiteInt8 ||
+      input->type == kTfLiteInt16) {
     TF_LITE_ENSURE_EQ(context, input->params.scale,
                       op_context->output->params.scale);
     TF_LITE_ENSURE_EQ(context, input->params.zero_point,
@@ -559,6 +571,7 @@ enum ReduceType {
   kMax,
   kMin,
   kAny,
+  kAll,
 };
 
 // Eval for determined input type and reduce type.
@@ -606,6 +619,12 @@ TfLiteStatus EvalType<bool>(TfLiteContext* context, TfLiteNode* node,
                                return in || current;
                              });
       break;
+    case kAll:
+      return EvalLogic<bool>(context, node, op_context, true,
+                             [](const bool current, const bool in) -> bool {
+                               return in && current;
+                             });
+      break;
     default:
       return kTfLiteError;
   }
@@ -634,6 +653,9 @@ TfLiteStatus EvalGeneric(TfLiteContext* context, TfLiteNode* node) {
       break;
     case kTfLiteInt8:
       return EvalType<int8_t>(context, node, &op_context, reduce_type);
+      break;
+    case kTfLiteInt16:
+      return EvalType<int16_t>(context, node, &op_context, reduce_type);
       break;
     case kTfLiteBool:
       return EvalType<bool>(context, node, &op_context, reduce_type);
@@ -763,8 +785,15 @@ TfLiteRegistration* Register_REDUCE_MIN_REF() {
 
 TfLiteRegistration* Register_REDUCE_ANY_REF() {
   static TfLiteRegistration r = {
-      reduce::Init, reduce::Free, reduce::PrepareAny,
+      reduce::Init, reduce::Free, reduce::PrepareAllOrAny,
       reduce::EvalGeneric<reduce::kReference, reduce::kAny>};
+  return &r;
+}
+
+TfLiteRegistration* Register_REDUCE_ALL_REF() {
+  static TfLiteRegistration r = {
+      reduce::Init, reduce::Free, reduce::PrepareAllOrAny,
+      reduce::EvalGeneric<reduce::kReference, reduce::kAll>};
   return &r;
 }
 
@@ -783,6 +812,7 @@ TfLiteRegistration* Register_REDUCE_PROD() {
 TfLiteRegistration* Register_REDUCE_MAX() { return Register_REDUCE_MAX_REF(); }
 TfLiteRegistration* Register_REDUCE_MIN() { return Register_REDUCE_MIN_REF(); }
 TfLiteRegistration* Register_REDUCE_ANY() { return Register_REDUCE_ANY_REF(); }
+TfLiteRegistration* Register_REDUCE_ALL() { return Register_REDUCE_ALL_REF(); }
 
 }  // namespace builtin
 }  // namespace ops

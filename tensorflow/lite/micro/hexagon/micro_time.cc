@@ -1,4 +1,4 @@
-/* Copyright 2020 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2021 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,17 +12,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-
-// Hexagon timer implementation.
-// To include this with make, add TARGET=hexagon.
-#include "tensorflow/lite/micro/micro_time.h"
-
-#include <time.h>
-
-namespace tflite {
-
-int32_t ticks_per_second() { return CLOCKS_PER_SEC; }
-
-int32_t GetCurrentTimeTicks() { return clock(); }
-
-}  // namespace tflite
+// This file is empty to ensure that a specialized implementation of
+// micro_time.h is used (instead of the default implementation from
+// tensorflow/lite/micro/micro_time.cc).
+//
+// The actual target-specific implementation of micro_time.h is in
+// system_setup.cc since that allows us to consolidate all the target-specific
+// specializations into one source file.
+//
+//

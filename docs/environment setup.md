@@ -125,6 +125,24 @@ sudo ln -sf /usr/bin/mips64el-linux-gnuabi64-g++-5 /usr/bin/mips64el-linux-gnuab
 ```
 ./build.sh linux cross_mips64
 ```
+## Linux（ubuntu16.04）交叉编译loongarch
+
+* 1.下载龙芯GCC交叉编译工具至 /usr 目录下，更改命名为 loongarch64-linux-gnu，如需下载到特定地址或者想用自己的命名，请对应修改build_linux.sh 文件中cross_loong64部分的CMAKE_C_COMPILER和CMAKE_CXX_COMPILER的路径，详情如下：
+
+```
+//build_linux.sh 46行处
+-DCMAKE_C_COMPILER={你的路径} \
+-DCMAKE_CXX_COMPILER={你的路径}} \
+```
+
+* 2.交叉编译loongarch
+
+切换到源码目录，并进入tools目录下，执行以下命令：
+
+```
+./build.sh linux cross_loong64
+```
+
 
 
 ## Windows 10编译Windows版本

@@ -40,7 +40,7 @@ TFL_CAPI_EXPORT extern TfLiteStatus TfLiteInterpreterResetVariableTensors(
 /// practice is making the provided `TfLiteRegistration` instance static.
 ///
 /// Code that uses this function should NOT call
-/// `TfLiteInterpreterOptionsSetOpResolver' on the same options object.
+/// `TfLiteInterpreterOptionsSetOpResolver` on the same options object.
 ///
 /// WARNING: This is an experimental API and subject to change.
 TFL_CAPI_EXPORT void TfLiteInterpreterOptionsAddBuiltinOp(
@@ -58,8 +58,11 @@ TFL_CAPI_EXPORT void TfLiteInterpreterOptionsAddBuiltinOp(
 /// remain valid for the duration of any created interpreter's lifetime. A
 /// common practice is making the provided `TfLiteRegistration` instance static.
 ///
+/// The lifetime of the string pointed to by `name` must be at least as long
+/// as the lifetime of the `TfLiteInterpreterOptions`.
+///
 /// Code that uses this function should NOT call
-/// `TfLiteInterpreterOptionsSetOpResolver' on the same options object.
+/// `TfLiteInterpreterOptionsSetOpResolver` on the same options object.
 ///
 /// WARNING: This is an experimental API and subject to change.
 TFL_CAPI_EXPORT void TfLiteInterpreterOptionsAddCustomOp(
@@ -76,8 +79,11 @@ TFL_CAPI_EXPORT void TfLiteInterpreterOptionsAddCustomOp(
 /// the operators in a single call.
 ///
 /// Code that uses this function should NOT call
-/// `TfLiteInterpreterOptionsAddBuiltin' or
-/// `TfLiteInterpreterOptionsAddCustomOp' on the same options object.
+/// `TfLiteInterpreterOptionsAddBuiltin` or
+/// `TfLiteInterpreterOptionsAddCustomOp` on the same options object.
+///
+/// If `op_resolver_user_data` is non-null, its lifetime must be at least as
+/// long as the lifetime of the `TfLiteInterpreterOptions`.
 ///
 /// WARNING: This is an experimental API and subject to change.
 void TfLiteInterpreterOptionsSetOpResolver(
@@ -113,10 +119,37 @@ TFL_CAPI_EXPORT extern TfLiteInterpreter*
 TfLiteInterpreterCreateWithSelectedOps(const TfLiteModel* model,
                                        const TfLiteInterpreterOptions* options);
 
-/// Enable or disable the NN API for the interpreter (true to enable).
+/// Enable or disable the NN API delegate for the interpreter (true to enable).
 ///
 /// WARNING: This is an experimental API and subject to change.
 TFL_CAPI_EXPORT extern void TfLiteInterpreterOptionsSetUseNNAPI(
+    TfLiteInterpreterOptions* options, bool enable);
+
+/// Enable or disable CPU fallback for the interpreter (true to enable).
+/// If enabled, TfLiteInterpreterInvoke will do automatic fallback from
+/// executing with delegate(s) to regular execution without delegates
+/// (i.e. on CPU).
+///
+/// Allowing the fallback is suitable only if both of the following hold:
+/// - The caller is known not to cache pointers to tensor data across
+///   TfLiteInterpreterInvoke calls.
+/// - The model is not stateful (no variables, no LSTMs) or the state isn't
+///   needed between batches.
+///
+/// When delegate fallback is enabled, TfLiteInterpreterInvoke will
+/// behave as follows:
+///   If one or more delegates were set in the interpreter options
+///   (see TfLiteInterpreterOptionsAddDelegate),
+///   AND inference fails,
+///   then the interpreter will fall back to not using any delegates.
+///   In that case, the previously applied delegate(s) will be automatically
+///   undone, and an attempt will be made to return the interpreter to an
+///   invokable state, which may invalidate previous tensor addresses,
+///   and the inference will be attempted again, using input tensors with
+///   the same value as previously set.
+///
+/// WARNING: This is an experimental API and subject to change.
+TFL_CAPI_EXPORT extern void TfLiteInterpreterOptionsSetEnableDelegateFallback(
     TfLiteInterpreterOptions* options, bool enable);
 
 #ifdef __cplusplus

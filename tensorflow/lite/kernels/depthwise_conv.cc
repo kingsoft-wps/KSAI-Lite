@@ -98,12 +98,9 @@ TfLiteStatus Prepare(TfLiteContext* context, TfLiteNode* node) {
       reinterpret_cast<TfLiteDepthwiseConvParams*>(node->builtin_data);
   OpData* data = reinterpret_cast<OpData*>(node->user_data);
 
-  // TODO(ahentz): use could use GetOptionalInputTensor() here, but we need to
-  // decide whether we are OK with optional tensors being completely absent, as
-  // opposed to having -1 as their index.
-  bool hasBias = NumInputs(node) == 3;
+  bool has_bias = NumInputs(node) == 3;
 
-  TF_LITE_ENSURE(context, hasBias || NumInputs(node) == 2);
+  TF_LITE_ENSURE(context, has_bias || NumInputs(node) == 2);
   const TfLiteTensor* input;
   TF_LITE_ENSURE_OK(context, GetInputSafe(context, node, kInputTensor, &input));
   const TfLiteTensor* filter;
@@ -133,10 +130,15 @@ TfLiteStatus Prepare(TfLiteContext* context, TfLiteNode* node) {
                    filter->type == data_type || data_type == kTfLiteInt16);
   }
 
+  if (data_type == kTfLiteInt16) {
+    TF_LITE_ENSURE_EQ(context, input->params.zero_point, 0);
+    TF_LITE_ENSURE_EQ(context, output->params.zero_point, 0);
+  }
+
   // Filter in DepthwiseConv is expected to be [1, H, W, O].
   TF_LITE_ENSURE_EQ(context, SizeOfDimension(filter, 0), 1);
 
-  if (hasBias) {
+  if (has_bias) {
     TF_LITE_ENSURE_OK(context, GetInputSafe(context, node, kBiasTensor, &bias));
     if (data_type == kTfLiteUInt8 || data_type == kTfLiteInt8) {
       TF_LITE_ENSURE_TYPES_EQ(context, bias->type, kTfLiteInt32);
@@ -144,8 +146,6 @@ TfLiteStatus Prepare(TfLiteContext* context, TfLiteNode* node) {
     } else if (data_type == kTfLiteInt16) {
       TF_LITE_ENSURE_TYPES_EQ(context, bias->type, kTfLiteInt64);
       TF_LITE_ENSURE_EQ(context, bias->params.zero_point, 0);
-      TF_LITE_ENSURE_EQ(context, input->params.zero_point, 0);
-      TF_LITE_ENSURE_EQ(context, output->params.zero_point, 0);
     } else {
       TF_LITE_ENSURE_TYPES_EQ(context, bias->type, data_type);
     }
@@ -176,6 +176,7 @@ TfLiteStatus Prepare(TfLiteContext* context, TfLiteNode* node) {
   if (data_type != kTfLiteFloat32) {
     TF_LITE_ENSURE_EQ(context, filter->quantization.type,
                       kTfLiteAffineQuantization);
+    TF_LITE_ENSURE(context, filter->quantization.type != kTfLiteNoQuantization);
     const auto* affine_quantization =
         reinterpret_cast<TfLiteAffineQuantization*>(
             filter->quantization.params);
@@ -195,6 +196,7 @@ TfLiteStatus Prepare(TfLiteContext* context, TfLiteNode* node) {
   }
 
   if (is_hybrid) {
+    TF_LITE_ENSURE(context, filter->quantization.type != kTfLiteNoQuantization);
     const auto* affine_quantization =
         reinterpret_cast<TfLiteAffineQuantization*>(
             filter->quantization.params);
@@ -285,8 +287,8 @@ TfLiteStatus ComputeDepthMultiplier(TfLiteContext* context,
                                     int16* depth_multiplier) {
   int num_filter_channels = SizeOfDimension(filter, 3);
   int num_input_channels = SizeOfDimension(input, 3);
+  TF_LITE_ENSURE(context, num_input_channels != 0);
   TF_LITE_ENSURE_EQ(context, num_filter_channels % num_input_channels, 0);
-
   *depth_multiplier = num_filter_channels / num_input_channels;
   return kTfLiteOk;
 }
@@ -455,8 +457,9 @@ TfLiteStatus EvalHybridPerChannel(TfLiteContext* context, TfLiteNode* node,
   float output_activation_min, output_activation_max;
   CalculateActivationRange(params->activation, &output_activation_min,
                            &output_activation_max);
-  const int input_size = NumElements(input) / SizeOfDimension(input, 0);
   const int batch_size = SizeOfDimension(input, 0);
+  TF_LITE_ENSURE(context, batch_size != 0);
+  const int input_size = NumElements(input) / batch_size;
   TfLiteTensor* input_quantized;
   TF_LITE_ENSURE_OK(context,
                     GetTemporarySafe(context, node, data->input_quantized_index,
@@ -494,6 +497,7 @@ TfLiteStatus EvalHybridPerChannel(TfLiteContext* context, TfLiteNode* node,
   op_params.weights_offset = 0;
   op_params.float_activation_min = output_activation_min;
   op_params.float_activation_max = output_activation_max;
+  TF_LITE_ENSURE(context, filter->quantization.type != kTfLiteNoQuantization);
   const auto* affine_quantization =
       reinterpret_cast<TfLiteAffineQuantization*>(filter->quantization.params);
   if (kernel_type == kReference) {

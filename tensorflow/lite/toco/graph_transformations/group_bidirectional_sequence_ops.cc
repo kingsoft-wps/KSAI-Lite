@@ -22,7 +22,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/lite/toco/graph_transformations/graph_transformations.h"
 #include "tensorflow/lite/toco/model.h"
-#include "tensorflow/core/toco/tooling_util.h"
+#include "tensorflow/lite/toco/tooling_util.h"
 
 namespace toco {
 namespace {

@@ -214,14 +214,15 @@ TfLiteStatus PopulateConvolutionQuantizationParams(
     const TfLiteTensor* filter, const TfLiteTensor* bias, TfLiteTensor* output,
     const TfLiteFusedActivation& activation, int32_t* multiplier, int* shift,
     int32_t* output_activation_min, int32_t* output_activation_max,
-    int32_t* per_channel_multiplier, int* per_channel_shift);
+    int32_t* per_channel_multiplier, int32_t* per_channel_shift);
 
 TfLiteStatus PopulateConvolutionQuantizationParams(
     TfLiteContext* context, const TfLiteTensor* input,
     const TfLiteTensor* filter, const TfLiteTensor* bias, TfLiteTensor* output,
     const TfLiteFusedActivation& activation, int32_t* multiplier, int* shift,
     int32_t* output_activation_min, int32_t* output_activation_max,
-    int32_t* per_channel_multiplier, int* per_channel_shift, int num_channels);
+    int32_t* per_channel_multiplier, int32_t* per_channel_shift,
+    int num_channels);
 
 // Calculates the multiplication factor for a quantized convolution (or
 // quantized depthwise convolution) involving the given tensors. Returns an
@@ -284,6 +285,13 @@ TfLiteStatus CalculateShapeForBroadcast(TfLiteContext* context,
                                         const TfLiteTensor* input2,
                                         const TfLiteTensor* input3,
                                         TfLiteIntArray** output_shape);
+
+// Return the size of given type in bytes. Return 0 in in case of string.
+int TfLiteTypeGetSize(TfLiteType type);
+
+// Whether the current platform is mobile (Android or iOS).
+bool IsMobilePlatform();
+
 }  // namespace tflite
 
 #endif  // TENSORFLOW_LITE_KERNELS_KERNEL_UTIL_H_

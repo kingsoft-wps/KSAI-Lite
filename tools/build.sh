@@ -16,11 +16,15 @@ case "$1" in
       cross_mips64)
         /bin/bash ./build_linux.sh cross_mips64
         ;;
+      cross_loong64)
+        /bin/bash ./build_linux.sh cross_loong64
+        ;;
       all)
         echo "target arch is native, aarch64 and mips64" 
         /bin/bash ./build_linux.sh native
         /bin/bash ./build_linux.sh cross_aarch64
         /bin/bash ./build_linux.sh cross_mips64 
+        /bin/bash ./build_linux.sh cross_loong64
         ;;
       *)
         echo "please input the target arch you want to build" 
@@ -40,6 +44,7 @@ case "$1" in
     /bin/bash ./build_linux.sh native
     /bin/bash ./build_linux.sh cross_aarch64
     /bin/bash ./build_linux.sh cross_mips64 
+    /bin/bash ./build_linux.sh cross_loong64
     ;;
   *)
     echo "please input the platform you want to build" 

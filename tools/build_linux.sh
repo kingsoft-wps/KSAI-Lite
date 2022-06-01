@@ -39,6 +39,18 @@ case "$1" in
     -DCMAKE_SYSTEM_PROCESSOR=mips64el
     cd ../../output/linux_sdk/cross_mips64
 	  ;;
+  cross_loong64)
+    mkdir -p ../../output/linux_sdk/cross_loong64
+    echo "target arch is loong64" 
+    cmake ./ -B ../../output/linux_sdk/cross_loong64\
+      -DCMAKE_C_COMPILER=/usr/loongarch64-linux-gnu/bin/loongarch64-linux-gnu-gcc \
+      -DCMAKE_CXX_COMPILER=/usr/loongarch64-linux-gnu/bin/loongarch64-linux-gnu-g++ \
+      -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
+      -DCMAKE_SYSTEM_NAME=Linux \
+      -DTFLITE_ENABLE_XNNPACK=OFF\
+      -DCMAKE_SYSTEM_PROCESSOR=loongarch64
+    cd ../../output/linux_sdk/cross_loong64
+	  ;;
   *)
     echo "please input the target arch you want to build" 
     ;;
@@ -48,6 +60,6 @@ make
 make benchmark_model
 make reg_test
 mkdir -p ./lib/
-mv libtensorflow-lite* ./lib/
+mv libksailite* ./lib/
 cd ../../../tools
 

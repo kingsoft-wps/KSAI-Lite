@@ -30,7 +30,7 @@ KSAI Lite提供了多平台的官方Release预测库下载，我们优先推荐�
 
 KSAI Lite提供了C++ API，并且提供了相应API的完整使用示例:
 目录为`tensorflow/lite/examples/reg_test/reg_test.cc`
-您可以参考示例快速了解使用方法，并集成到您自己的项目中去，也可以参考[KSAI-Toolkits](https://github.com/kingsoft-wps/KSAI-Toolkits)该项目。
+您可以参考示例快速了解使用方法，并集成到您自己的项目中去，也可以参考[KSAI-Toolkits]()该项目。
 
 
 
@@ -50,17 +50,17 @@ KSAI Lite提供了C++ API，并且提供了相应API的完整使用示例:
 
 ## 持续集成
 
-| System | X86 Linux | ARM Linux | MIPS64 Linux| windows x86|
-|:-:|:-:|:-:|:-:|:-:|
-| CPU(32bit) | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | - | - | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)
-| CPU(64bit) | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | - | - | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)
-| 高通骁龙845 | - | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | - | - |
-| 华为kunpeng920 | - | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | - | - |
-| 龙芯Loongson-3A | - | - | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | - |
-| 兆芯C4600 | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | - | - | - |
-| Phytium FT1500a | - | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | - | - |
+| platform | Linux(ubuntu 16.04) | Windows (Win 10) | Android | IOS | Comments |
+|:-:|:-:|:-:|:-:|:-:|:-:|
+| intel x86 | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | - | - | i5-9500 |
+| intel x86-64 | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | - | - | i5-9500 |
+| 高通 ARM | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | - | - |  - | 骁龙845 |
+| 华为 ARM | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | - | - | - | kunpeng920 |
+| 龙芯 MIPS64 | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | - | - | - | Loongson-3A |
+| 兆芯 X86 | - | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | - | - | C4600 |
+| Phytium ARM | ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg) | - | - | - | FT1500a |
 
 ##  交流与反馈
-* 欢迎您通过[Github Issues](https://github.com/kingsoft-wps/KSAI-Lite/issues)来提交问题、报告与建议
+* 欢迎您通过[Github Issues](https://github.com/KSAI/KSAI-Lite/issues)来提交问题、报告与建议
 ## 版权和许可证
 KSAI-Lite由[Apache-2.0 license](LICENSE)提供

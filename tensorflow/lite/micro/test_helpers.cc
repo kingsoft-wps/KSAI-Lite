@@ -30,7 +30,8 @@ limitations under the License.
 #include "tensorflow/lite/micro/all_ops_resolver.h"
 #include "tensorflow/lite/micro/micro_utils.h"
 #include "tensorflow/lite/schema/schema_generated.h"
-#include "tensorflow/lite/schema/schema_utils.h"
+
+// TODO(b/170464050): Use TFLM test only version of schema_utils.
 
 namespace tflite {
 namespace testing {
@@ -85,8 +86,7 @@ class ModelBuilder {
       : builder_(builder) {}
 
   // Registers an operator that will be used in the model.
-  Operator RegisterOp(BuiltinOperator op, const char* custom_code,
-                      int32_t version);
+  Operator RegisterOp(BuiltinOperator op, const char* custom_code);
 
   // Adds a tensor to the model.
   Tensor AddTensor(TensorType type, std::initializer_list<int32_t> shape) {
@@ -145,11 +145,10 @@ class ModelBuilder {
 };
 
 ModelBuilder::Operator ModelBuilder::RegisterOp(BuiltinOperator op,
-                                                const char* custom_code,
-                                                int32_t version) {
+                                                const char* custom_code) {
   TFLITE_DCHECK(next_operator_code_id_ <= kMaxOperatorCodes);
-  operator_codes_[next_operator_code_id_] =
-      tflite::CreateOperatorCodeDirect(*builder_, op, custom_code, version);
+  operator_codes_[next_operator_code_id_] = tflite::CreateOperatorCodeDirect(
+      *builder_, /*deprecated_builtin_code=*/0, custom_code, /*version=*/0, op);
   next_operator_code_id_++;
   return next_operator_code_id_ - 1;
 }
@@ -196,7 +195,7 @@ const Model* ModelBuilder::BuildModel(
     buffers[i] = metadata_buffers_[i - 1];
   }
 
-  // TFLM only supports single subgraph.
+  // Default to single subgraph model.
   constexpr size_t subgraphs_size = 1;
 
   // Find out number of subgraph inputs.
@@ -206,7 +205,7 @@ const Model* ModelBuilder::BuildModel(
   } else {
     // A non-zero value of num_subgraph_inputs means that some of
     // the operator input tensors are not subgraph inputs.
-    TFLITE_DCHECK(num_subgraph_inputs < inputs.size());
+    TFLITE_DCHECK(num_subgraph_inputs <= inputs.size());
   }
 
   const flatbuffers::Offset<SubGraph> subgraphs[subgraphs_size] = {
@@ -261,7 +260,7 @@ const Model* BuildSimpleStatefulModel() {
   ModelBuilder model_builder(fb_builder);
 
   const int op_id =
-      model_builder.RegisterOp(BuiltinOperator_CUSTOM, "simple_stateful_op", 0);
+      model_builder.RegisterOp(BuiltinOperator_CUSTOM, "simple_stateful_op");
   const int input_tensor = model_builder.AddTensor(TensorType_UINT8, {3});
   const int median_tensor = model_builder.AddTensor(TensorType_UINT8, {3});
   const int invoke_count_tensor =
@@ -302,8 +301,7 @@ const Model* BuildSimpleModelWithBranch() {
                  v
   */
   const int op_id =
-      model_builder.RegisterOp(BuiltinOperator_CUSTOM, "mock_custom",
-                               /* version= */ 0);
+      model_builder.RegisterOp(BuiltinOperator_CUSTOM, "mock_custom");
   const int t0 = model_builder.AddTensor(TensorType_FLOAT32, {2, 2, 3});
   const int t1 = model_builder.AddTensor(TensorType_FLOAT32, {2, 2, 3});
   const int t2 = model_builder.AddTensor(TensorType_FLOAT32, {2, 2, 3});
@@ -325,8 +323,7 @@ const Model* BuildModelWithOfflinePlanning(int number_of_tensors,
   ModelBuilder model_builder(fb_builder);
 
   const int op_id =
-      model_builder.RegisterOp(BuiltinOperator_CUSTOM, "mock_custom",
-                               /* version= */ 0);
+      model_builder.RegisterOp(BuiltinOperator_CUSTOM, "mock_custom");
 
   for (int i = 0; i < number_of_tensors; ++i) {
     model_builder.AddTensor(TensorType_FLOAT32, {2, 2, 3});
@@ -342,6 +339,72 @@ const Model* BuildModelWithOfflinePlanning(int number_of_tensors,
 
   return model_builder.BuildModel(
       node_conn[0].input, node_conn[num_conns - 1].output, num_subgraph_inputs);
+}
+
+const Model* BuildModelWithUnusedInputs() {
+  using flatbuffers::Offset;
+  flatbuffers::FlatBufferBuilder* builder = BuilderInstance();
+
+  constexpr size_t buffers_size = 1;
+  const Offset<Buffer> buffers[buffers_size] = {CreateBuffer(*builder)};
+  constexpr size_t tensor_shape_size = 2;
+  const int32_t tensor_shape[tensor_shape_size] = {1, 64};
+  constexpr size_t tensors_size = 4;
+  const Offset<Tensor> tensors[tensors_size] = {
+      CreateTensor(*builder,
+                   builder->CreateVector(tensor_shape, tensor_shape_size),
+                   TensorType_INT8, 0,
+                   builder->CreateString("test_input_tensor"), 0, false),
+      CreateTensor(*builder,
+                   builder->CreateVector(tensor_shape, tensor_shape_size),
+                   TensorType_INT8, 0,
+                   builder->CreateString("test_unused_input_tensor"), 0, false),
+      CreateTensor(*builder,
+                   builder->CreateVector(tensor_shape, tensor_shape_size),
+                   TensorType_INT8, 0,
+                   builder->CreateString("test_output_tensor"), 0, false),
+      CreateTensor(*builder,
+                   builder->CreateVector(tensor_shape, tensor_shape_size),
+                   TensorType_INT8, 0,
+                   builder->CreateString("test_unused_tensor"), 0, false),
+  };
+  constexpr size_t inputs_size = 2;
+  const int32_t inputs[inputs_size] = {0, 1};
+  constexpr size_t outputs_size = 1;
+  const int32_t outputs[outputs_size] = {2};
+  constexpr size_t operator_inputs_size = 1;
+  const int32_t operator_inputs[operator_inputs_size] = {0};
+  constexpr size_t operator_outputs_size = 1;
+  const int32_t operator_outputs[operator_outputs_size] = {2};
+  constexpr size_t operators_size = 1;
+  const Offset<Operator> operators[operators_size] = {
+      CreateOperator(
+          *builder, 0,
+          builder->CreateVector(operator_inputs, operator_inputs_size),
+          builder->CreateVector(operator_outputs, operator_outputs_size),
+          BuiltinOptions_NONE),
+  };
+  constexpr size_t subgraphs_size = 1;
+  const Offset<SubGraph> subgraphs[subgraphs_size] = {
+      CreateSubGraph(*builder, builder->CreateVector(tensors, tensors_size),
+                     builder->CreateVector(inputs, inputs_size),
+                     builder->CreateVector(outputs, outputs_size),
+                     builder->CreateVector(operators, operators_size),
+                     builder->CreateString("test_subgraph"))};
+  constexpr size_t operator_codes_size = 1;
+  const Offset<OperatorCode> operator_codes[operator_codes_size] = {
+      CreateOperatorCodeDirect(*builder, /*deprecated_builtin_code=*/0,
+                               "mock_custom",
+                               /*version=*/0, BuiltinOperator_CUSTOM)};
+  const Offset<Model> model_offset = CreateModel(
+      *builder, 0, builder->CreateVector(operator_codes, operator_codes_size),
+      builder->CreateVector(subgraphs, subgraphs_size),
+      builder->CreateString("test_model"),
+      builder->CreateVector(buffers, buffers_size));
+  FinishModelBuffer(*builder, model_offset);
+  void* model_pointer = builder->GetBufferPointer();
+  const Model* model = flatbuffers::GetRoot<Model>(model_pointer);
+  return model;
 }
 
 const Model* BuildSimpleMockModel() {
@@ -407,8 +470,9 @@ const Model* BuildSimpleMockModel() {
                      builder->CreateString("test_subgraph"))};
   constexpr size_t operator_codes_size = 1;
   const Offset<OperatorCode> operator_codes[operator_codes_size] = {
-      CreateOperatorCodeDirect(*builder, BuiltinOperator_CUSTOM, "mock_custom",
-                               0)};
+      CreateOperatorCodeDirect(*builder, /*deprecated_builtin_code=*/0,
+                               "mock_custom",
+                               /*version=*/0, BuiltinOperator_CUSTOM)};
   const Offset<Model> model_offset = CreateModel(
       *builder, 0, builder->CreateVector(operator_codes, operator_codes_size),
       builder->CreateVector(subgraphs, subgraphs_size),
@@ -556,8 +620,9 @@ const Model* BuildComplexMockModel() {
 
   constexpr size_t operator_codes_size = 1;
   const Offset<OperatorCode> operator_codes[operator_codes_size] = {
-      CreateOperatorCodeDirect(*builder, BuiltinOperator_CUSTOM, "mock_custom",
-                               0)};
+      CreateOperatorCodeDirect(*builder, /*deprecated_builtin_code=*/0,
+                               "mock_custom",
+                               /*version=*/0, BuiltinOperator_CUSTOM)};
 
   const Offset<Model> model_offset = CreateModel(
       *builder, 0, builder->CreateVector(operator_codes, operator_codes_size),
@@ -565,6 +630,193 @@ const Model* BuildComplexMockModel() {
       builder->CreateString("test_model"),
       builder->CreateVector(buffers, buffers_size));
 
+  FinishModelBuffer(*builder, model_offset);
+  void* model_pointer = builder->GetBufferPointer();
+  const Model* model = flatbuffers::GetRoot<Model>(model_pointer);
+  return model;
+}
+
+const Model* BuildSimpleMultipleInputsModel() {
+  using flatbuffers::Offset;
+  flatbuffers::FlatBufferBuilder* builder = BuilderInstance();
+
+  constexpr size_t buffers_size = 1;
+  const Offset<Buffer> buffers[buffers_size] = {
+      CreateBuffer(*builder),
+  };
+  constexpr size_t tensor_shape_size = 1;
+  const int32_t tensor_shape[tensor_shape_size] = {1};
+  constexpr size_t tensors_size = 4;
+  const Offset<Tensor> tensors[tensors_size] = {
+      CreateTensor(*builder,
+                   builder->CreateVector(tensor_shape, tensor_shape_size),
+                   TensorType_INT32, 0,
+                   builder->CreateString("test_input_tensor1"), 0, false),
+      CreateTensor(*builder,
+                   builder->CreateVector(tensor_shape, tensor_shape_size),
+                   TensorType_INT8, 0,
+                   builder->CreateString("test_input_tensor2"), 0, false),
+      CreateTensor(*builder,
+                   builder->CreateVector(tensor_shape, tensor_shape_size),
+                   TensorType_INT32, 0,
+                   builder->CreateString("test_input_tensor3"), 0, false),
+      CreateTensor(*builder,
+                   builder->CreateVector(tensor_shape, tensor_shape_size),
+                   TensorType_INT32, 0,
+                   builder->CreateString("test_output_tensor"), 0, false),
+  };
+  constexpr size_t inputs_size = 3;
+  const int32_t inputs[inputs_size] = {0, 1, 2};
+  constexpr size_t outputs_size = 1;
+  const int32_t outputs[outputs_size] = {3};
+  constexpr size_t operator_inputs_size = 3;
+  const int32_t operator_inputs[operator_inputs_size] = {0, 1, 2};
+  constexpr size_t operator_outputs_size = 1;
+  const int32_t operator_outputs[operator_outputs_size] = {3};
+  constexpr size_t operators_size = 1;
+  const Offset<Operator> operators[operators_size] = {
+      CreateOperator(
+          *builder, 0,
+          builder->CreateVector(operator_inputs, operator_inputs_size),
+          builder->CreateVector(operator_outputs, operator_outputs_size),
+          BuiltinOptions_NONE),
+  };
+  constexpr size_t subgraphs_size = 1;
+  const Offset<SubGraph> subgraphs[subgraphs_size] = {
+      CreateSubGraph(*builder, builder->CreateVector(tensors, tensors_size),
+                     builder->CreateVector(inputs, inputs_size),
+                     builder->CreateVector(outputs, outputs_size),
+                     builder->CreateVector(operators, operators_size),
+                     builder->CreateString("test_subgraph"))};
+  constexpr size_t operator_codes_size = 1;
+  const Offset<OperatorCode> operator_codes[operator_codes_size] = {
+      CreateOperatorCodeDirect(*builder, /*deprecated_builtin_code=*/0,
+                               "multiple_inputs_op",
+                               /*version=*/0, BuiltinOperator_CUSTOM)};
+  const Offset<Model> model_offset = CreateModel(
+      *builder, 0, builder->CreateVector(operator_codes, operator_codes_size),
+      builder->CreateVector(subgraphs, subgraphs_size),
+      builder->CreateString("test_model"),
+      builder->CreateVector(buffers, buffers_size));
+  FinishModelBuffer(*builder, model_offset);
+  void* model_pointer = builder->GetBufferPointer();
+  const Model* model = flatbuffers::GetRoot<Model>(model_pointer);
+  return model;
+}
+
+const Model* BuildSimpleModelWithSubgraphsAndIf() {
+  using flatbuffers::Offset;
+  flatbuffers::FlatBufferBuilder* builder = BuilderInstance();
+
+  constexpr size_t buffers_size = 1;
+  const Offset<Buffer> buffers[buffers_size] = {
+      CreateBuffer(*builder),
+  };
+  const int32_t condition_tensor_shape[] = {1};
+  const int32_t data_tensor_shape[] = {1, 2};
+  constexpr size_t tensors_size = 4;
+  const Offset<Tensor> subgraph1_tensors[tensors_size] = {
+      CreateTensor(*builder, builder->CreateVector(condition_tensor_shape, 1),
+                   TensorType_BOOL, 0,
+                   builder->CreateString("condition tensor"), 0, false),
+      CreateTensor(*builder, builder->CreateVector(data_tensor_shape, 2),
+                   TensorType_FLOAT32, 0,
+                   builder->CreateString("input_tensor1"), 0, false),
+      CreateTensor(*builder, builder->CreateVector(data_tensor_shape, 2),
+                   TensorType_FLOAT32, 0,
+                   builder->CreateString("input_tensor2"), 0, false),
+      CreateTensor(*builder, builder->CreateVector(data_tensor_shape, 2),
+                   TensorType_FLOAT32, 0,
+                   builder->CreateString("output_tensor"), 0, false),
+  };
+  const Offset<Tensor> subgraph2_tensors[tensors_size] = {
+      CreateTensor(*builder, builder->CreateVector(data_tensor_shape, 2),
+                   TensorType_FLOAT32, 0,
+                   builder->CreateString("input_tensor1"), 0, false),
+      CreateTensor(*builder, builder->CreateVector(data_tensor_shape, 2),
+                   TensorType_FLOAT32, 0,
+                   builder->CreateString("input_tensor2"), 0, false),
+      CreateTensor(*builder, builder->CreateVector(data_tensor_shape, 2),
+                   TensorType_FLOAT32, 0,
+                   builder->CreateString("output_tensor"), 0, false),
+  };
+  const Offset<Tensor> subgraph3_tensors[tensors_size] = {
+      CreateTensor(*builder, builder->CreateVector(data_tensor_shape, 2),
+                   TensorType_FLOAT32, 0,
+                   builder->CreateString("input_tensor1"), 0, false),
+      CreateTensor(*builder, builder->CreateVector(data_tensor_shape, 2),
+                   TensorType_FLOAT32, 0,
+                   builder->CreateString("input_tensor2"), 0, false),
+      CreateTensor(*builder, builder->CreateVector(data_tensor_shape, 2),
+                   TensorType_FLOAT32, 0,
+                   builder->CreateString("output_tensor"), 0, false),
+  };
+
+  constexpr size_t if_inputs_size = 3;
+  const int32_t if_inputs[if_inputs_size] = {0, 1, 2};
+  constexpr size_t outputs_size = 1;
+  const int32_t if_outputs[outputs_size] = {3};
+  constexpr size_t operator_inputs_size = 2;
+  const int32_t operator_inputs[operator_inputs_size] = {0, 1};
+  const int32_t operator_outputs[outputs_size] = {2};
+  constexpr size_t operators_size = 1;
+  const Offset<Operator> subgraph1_operators[operators_size] = {
+      CreateOperator(
+          *builder, 0, builder->CreateVector(if_inputs, if_inputs_size),
+          builder->CreateVector(if_outputs, outputs_size),
+          BuiltinOptions_IfOptions, CreateIfOptions(*builder, 1, 2).Union()),
+  };
+  const Offset<Operator> subgraph2_operators[operators_size] = {
+      CreateOperator(
+          *builder, 1,
+          builder->CreateVector(operator_inputs, operator_inputs_size),
+          builder->CreateVector(operator_outputs, outputs_size),
+          BuiltinOptions_NONE),
+  };
+  const Offset<Operator> subgraph3_operators[operators_size] = {
+      CreateOperator(
+          *builder, 2,
+          builder->CreateVector(operator_inputs, operator_inputs_size),
+          builder->CreateVector(operator_outputs, outputs_size),
+          BuiltinOptions_NONE),
+  };
+  constexpr size_t subgraphs_size = 3;
+  const Offset<SubGraph> subgraphs[subgraphs_size] = {
+      CreateSubGraph(*builder, builder->CreateVector(subgraph1_tensors, 4),
+                     builder->CreateVector(if_inputs, if_inputs_size),
+                     builder->CreateVector(if_outputs, outputs_size),
+                     builder->CreateVector(subgraph1_operators, operators_size),
+                     builder->CreateString("if_subgraph")),
+      CreateSubGraph(
+          *builder, builder->CreateVector(subgraph2_tensors, 3),
+          builder->CreateVector(operator_inputs, operator_inputs_size),
+          builder->CreateVector(operator_outputs, outputs_size),
+          builder->CreateVector(subgraph2_operators, operators_size),
+          builder->CreateString("then_subgraph")),
+      CreateSubGraph(
+          *builder, builder->CreateVector(subgraph3_tensors, 3),
+          builder->CreateVector(operator_inputs, operator_inputs_size),
+          builder->CreateVector(operator_outputs, outputs_size),
+          builder->CreateVector(subgraph3_operators, operators_size),
+          builder->CreateString("else_subgraph")),
+  };
+  constexpr size_t operator_codes_size = 3;
+  const Offset<OperatorCode> operator_codes[operator_codes_size] = {
+      CreateOperatorCodeDirect(*builder, /*deprecated_builtin_code=*/0,
+                               "multiple_inputs_op",
+                               /*version=*/0, BuiltinOperator_IF),
+      CreateOperatorCodeDirect(*builder, /*deprecated_builtin_code=*/0,
+                               "multiple_inputs_op",
+                               /*version=*/0, BuiltinOperator_ADD),
+      CreateOperatorCodeDirect(*builder, /*deprecated_builtin_code=*/0,
+                               "multiple_inputs_op",
+                               /*version=*/0, BuiltinOperator_MUL),
+  };
+  const Offset<Model> model_offset = CreateModel(
+      *builder, 0, builder->CreateVector(operator_codes, operator_codes_size),
+      builder->CreateVector(subgraphs, subgraphs_size),
+      builder->CreateString("test_model"),
+      builder->CreateVector(buffers, buffers_size));
   FinishModelBuffer(*builder, model_offset);
   void* model_pointer = builder->GetBufferPointer();
   const Model* model = flatbuffers::GetRoot<Model>(model_pointer);
@@ -705,19 +957,96 @@ TfLiteStatus MockCustom::Invoke(TfLiteContext* context, TfLiteNode* node) {
 
 bool MockCustom::freed_ = false;
 
+const TfLiteRegistration* MultipleInputs::getRegistration() {
+  return GetMutableRegistration();
+}
+
+TfLiteRegistration* MultipleInputs::GetMutableRegistration() {
+  static TfLiteRegistration r;
+  r.init = Init;
+  r.prepare = Prepare;
+  r.invoke = Invoke;
+  r.free = Free;
+  return &r;
+}
+
+void* MultipleInputs::Init(TfLiteContext* context, const char* buffer,
+                           size_t length) {
+  // We don't support delegate in TFL micro. This is a weak check to test if
+  // context struct being zero-initialized.
+  TFLITE_DCHECK(context->ReplaceNodeSubsetsWithDelegateKernels == nullptr);
+  freed_ = false;
+  // Do nothing.
+  return nullptr;
+}
+
+void MultipleInputs::Free(TfLiteContext* context, void* buffer) {
+  freed_ = true;
+}
+
+TfLiteStatus MultipleInputs::Prepare(TfLiteContext* context, TfLiteNode* node) {
+  return kTfLiteOk;
+}
+
+TfLiteStatus MultipleInputs::Invoke(TfLiteContext* context, TfLiteNode* node) {
+  const TfLiteTensor* input;
+  TF_LITE_ENSURE_OK(context, GetInputSafe(context, node, 0, &input));
+  const int32_t* input_data = input->data.i32;
+  const TfLiteTensor* input1;
+  TF_LITE_ENSURE_OK(context, GetInputSafe(context, node, 1, &input1));
+  const int32_t* input_data1 = input1->data.i32;
+  const TfLiteTensor* input2;
+  TF_LITE_ENSURE_OK(context, GetInputSafe(context, node, 2, &input2));
+  const int32_t* input_data2 = input2->data.i32;
+
+  TfLiteTensor* output;
+  TF_LITE_ENSURE_OK(context, GetOutputSafe(context, node, 0, &output));
+  int32_t* output_data = output->data.i32;
+  output_data[0] =
+      0;  // Catch output tensor sharing memory with an input tensor
+  output_data[0] = input_data[0] + input_data1[0] + input_data2[0];
+  return kTfLiteOk;
+}
+
+bool MultipleInputs::freed_ = false;
+
 AllOpsResolver GetOpResolver() {
   AllOpsResolver op_resolver;
   op_resolver.AddCustom("mock_custom", MockCustom::GetMutableRegistration());
   op_resolver.AddCustom("simple_stateful_op",
                         SimpleStatefulOp::GetMutableRegistration());
-
+  op_resolver.AddCustom("multiple_inputs_op",
+                        MultipleInputs::GetMutableRegistration());
   return op_resolver;
+}
+const Model* GetModelWithUnusedInputs() {
+  static Model* model = nullptr;
+  if (!model) {
+    model = const_cast<Model*>(BuildModelWithUnusedInputs());
+  }
+  return model;
 }
 
 const Model* GetSimpleMockModel() {
   static Model* model = nullptr;
   if (!model) {
     model = const_cast<Model*>(BuildSimpleMockModel());
+  }
+  return model;
+}
+
+const Model* GetSimpleMultipleInputsModel() {
+  static Model* model = nullptr;
+  if (!model) {
+    model = const_cast<Model*>(BuildSimpleMultipleInputsModel());
+  }
+  return model;
+}
+
+const Model* GetSimpleModelWithSubgraphsAndIf() {
+  static Model* model = nullptr;
+  if (!model) {
+    model = const_cast<Model*>(BuildSimpleModelWithSubgraphsAndIf());
   }
   return model;
 }
@@ -855,9 +1184,8 @@ void ReportOpError(struct TfLiteContext* context, const char* format, ...) {
 
 // Create a TfLiteIntArray from an array of ints.  The first element in the
 // supplied array must be the size of the array expressed as an int.
-TfLiteIntArray* IntArrayFromInts(const int* int_array) {
-  return const_cast<TfLiteIntArray*>(
-      reinterpret_cast<const TfLiteIntArray*>(int_array));
+TfLiteIntArray* IntArrayFromInts(int* int_array) {
+  return reinterpret_cast<TfLiteIntArray*>(int_array);
 }
 
 // Create a TfLiteFloatArray from an array of floats.  The first element in the

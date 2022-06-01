@@ -31,12 +31,13 @@ limitations under the License.
 #include "tensorflow/lite/delegates/gpu/cl/inference_context.h"
 #include "tensorflow/lite/delegates/gpu/cl/kernels/converter.h"
 #include "tensorflow/lite/delegates/gpu/cl/opencl_wrapper.h"
-#include "tensorflow/lite/delegates/gpu/cl/precision.h"
+#include "tensorflow/lite/delegates/gpu/cl/serialization.h"
 #include "tensorflow/lite/delegates/gpu/cl/tensor.h"
-#include "tensorflow/lite/delegates/gpu/cl/tensor_type.h"
 #include "tensorflow/lite/delegates/gpu/cl/tensor_type_util.h"
 #include "tensorflow/lite/delegates/gpu/common/data_type.h"
+#include "tensorflow/lite/delegates/gpu/common/precision.h"
 #include "tensorflow/lite/delegates/gpu/common/shape.h"
+#include "tensorflow/lite/delegates/gpu/common/task/tensor_desc.h"
 #include "tensorflow/lite/delegates/gpu/common/tensor.h"
 
 #ifdef CL_DELEGATE_ALLOW_GL
@@ -440,7 +441,7 @@ class TensorTieFactory {
   std::unique_ptr<TensorObjectConverterBuilder> converter_builder_;
 };
 
-class InferenceRunnerImpl : public InferenceRunner {
+class InferenceRunnerImpl : public CLInferenceRunner {
  public:
   InferenceRunnerImpl(Environment* environment,
                       std::unique_ptr<InferenceContext> context
@@ -503,25 +504,59 @@ class InferenceRunnerImpl : public InferenceRunner {
     return outputs_[index]->SetExternalObject(object);
   }
 
+  absl::Status CopyFromExternalInput(int index) override {
+    if (index > inputs_.size()) {
+      return absl::NotFoundError(
+          absl::StrCat("Input id ", index, " is an invalid input index."));
+    }
+    RETURN_IF_ERROR(inputs_[index]->CopyFromExternalObject());
+    return queue_->WaitForCompletion();
+  }
+
+  absl::Status CopyToExternalOutput(int index) override {
+    if (index > outputs_.size()) {
+      return absl::NotFoundError(
+          absl::StrCat("Output id ", index, " is an invalid output index"));
+    }
+    RETURN_IF_ERROR(outputs_[index]->CopyToExternalObject());
+    return queue_->WaitForCompletion();
+  }
+
   absl::Status Run() override {
 #ifdef CL_DELEGATE_ALLOW_GL
     if (gl_interop_fabric_) {
       RETURN_IF_ERROR(gl_interop_fabric_->Start());
     }
 #endif
-    for (auto& obj : inputs_) {
-      RETURN_IF_ERROR(obj->CopyFromExternalObject());
+    for (const auto& input : inputs_) {
+      RETURN_IF_ERROR(input->CopyFromExternalObject());
     }
-    RETURN_IF_ERROR(context_->AddToQueue(queue_));
-    clFlush(queue_->queue());
-    for (auto& obj : outputs_) {
-      RETURN_IF_ERROR(obj->CopyToExternalObject());
+
+    RETURN_IF_ERROR(RunWithoutExternalBufferCopy());
+
+    bool has_async_copies = false;
+    for (const auto& output : outputs_) {
+      RETURN_IF_ERROR(output->CopyToExternalObject());
+      if (output->def().external_def.object_def.object_type ==
+          ObjectType::CPU_MEMORY) {
+        has_async_copies = true;
+      }
     }
 #ifdef CL_DELEGATE_ALLOW_GL
     if (gl_interop_fabric_) {
       RETURN_IF_ERROR(gl_interop_fabric_->Finish());
     }
 #endif
+    if (has_async_copies) {
+      RETURN_IF_ERROR(queue_->WaitForCompletion());
+    }
+    return absl::OkStatus();
+  }
+
+  absl::Status RunWithoutExternalBufferCopy() override {
+    RETURN_IF_ERROR(context_->AddToQueue(queue_));
+    clFlush(queue_->queue());
+
     return absl::OkStatus();
   }
 
@@ -639,6 +674,11 @@ class InferenceBuilderImpl : public InferenceBuilder {
     } else if (options.usage == InferenceUsage::SUSTAINED_SPEED) {
       create_info.hints.Add(ModelHints::kAllowSpecialKernels);
     }
+    if (GetRelativeImportance(options, InferencePriority::MIN_MEMORY_USAGE,
+                              InferencePriority::MIN_LATENCY) ==
+        PriorityImportance::HIGHER) {
+      create_info.hints.Add(ModelHints::kNoWinogradOptimizations);
+    }
     RETURN_IF_ERROR(context_->InitFromGraph(create_info, graph, environment_));
 
 #ifdef CL_DELEGATE_ALLOW_GL
@@ -660,7 +700,7 @@ class InferenceBuilderImpl : public InferenceBuilder {
   }
 
   absl::Status Initialize(const InferenceEnvironmentOptions& env_options,
-                          const std::vector<uint8_t>& serialized_model) {
+                          const absl::Span<const uint8_t> serialized_model) {
     context_ = absl::make_unique<InferenceContext>();
     RETURN_IF_ERROR(
         context_->RestoreDeserialized(serialized_model, environment_));
@@ -925,7 +965,7 @@ class InferenceEnvironmentImpl : public InferenceEnvironment {
   }
 
   absl::Status NewInferenceBuilder(
-      const std::vector<uint8_t>& serialized_model,
+      const absl::Span<const uint8_t> serialized_model,
       std::unique_ptr<InferenceBuilder>* builder) final {
     if (environment_.program_cache() &&
         !options_.serialized_binary_cache.empty()) {
